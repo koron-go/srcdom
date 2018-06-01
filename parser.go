@@ -74,37 +74,54 @@ func (p *Parser) readTypeFields(expr ast.Expr, typ *Type) error {
 		if t.Fields == nil || len(t.Fields.List) == 0 {
 			break
 		}
-		for _, astField := range t.Fields.List {
-			f, err := p.toField(astField)
-			if err != nil {
-				return err
-			}
-			if f.Name == "" {
-				typ.putEmbedded(f.Type)
-				break
-			}
-			typ.putField(f)
+		err := p.readStructType(t, typ)
+		if err != nil {
+			return err
 		}
 	case *ast.InterfaceType:
 		if t.Methods == nil || len(t.Methods.List) == 0 {
 			break
 		}
-		for _, astField := range t.Methods.List {
-			name := firstName(astField.Names)
-			if name == "" {
-				// TODO: support embedded interface
-				return errors.New("embedded interface not supported")
+		err := p.readInterfaceType(t, typ)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *Parser) readStructType(st *ast.StructType, typ *Type) error {
+	typ.IsStruct = true
+	for _, astField := range st.Fields.List {
+		f, err := p.toField(astField)
+		if err != nil {
+			return err
+		}
+		if f.Name == "" {
+			typ.putEmbedded(f.Type)
+			break
+		}
+		typ.putField(f)
+	}
+	return nil
+}
+
+func (p *Parser) readInterfaceType(it *ast.InterfaceType, typ *Type) error {
+	for _, astField := range it.Methods.List {
+		name := firstName(astField.Names)
+		if name == "" {
+			// TODO: support embedded interface
+			return errors.New("embedded interface not supported")
+		}
+		switch ft := astField.Type.(type) {
+		case *ast.FuncType:
+			f, err := p.toFunc(name, ft)
+			if err != nil {
+				return err
 			}
-			switch ft := astField.Type.(type) {
-			case *ast.FuncType:
-				f, err := p.toFunc(name, ft)
-				if err != nil {
-					return err
-				}
-				typ.putMethod(f)
-			default:
-				return fmt.Errorf("unsupported interface method type: %T", ft)
-			}
+			typ.putMethod(f)
+		default:
+			return fmt.Errorf("unsupported interface method type: %T", ft)
 		}
 	}
 	return nil
@@ -198,6 +215,45 @@ func (p *Parser) toTag(x *ast.BasicLit) (*Tag, error) {
 	}
 }
 
+// readGenDecl reads top level GenDecl.
+func (p *Parser) readGenDecl(d *ast.GenDecl) error {
+	switch d.Tok {
+	case token.IMPORT:
+		for _, spec := range d.Specs {
+			if s, ok := spec.(*ast.ImportSpec); ok {
+				err := p.readImport(s)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	case token.CONST, token.VAR:
+		err := p.readValue(d)
+		if err != nil {
+			return err
+		}
+	case token.TYPE:
+		if len(d.Specs) == 1 && !d.Lparen.IsValid() {
+			if s, ok := d.Specs[0].(*ast.TypeSpec); ok {
+				err := p.readType(s)
+				if err != nil {
+					return err
+				}
+			}
+			break
+		}
+		for _, spec := range d.Specs {
+			if s, ok := spec.(*ast.TypeSpec); ok {
+				err := p.readType(s)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
 // ReadFile read a ast.File to build Package.
 func (p *Parser) ReadFile(file *ast.File) error {
 	if p.Package == nil || p.Package.Name != file.Name.Name {
@@ -208,39 +264,9 @@ func (p *Parser) ReadFile(file *ast.File) error {
 	for _, decl := range file.Decls {
 		switch d := decl.(type) {
 		case *ast.GenDecl:
-			switch d.Tok {
-			case token.IMPORT:
-				for _, spec := range d.Specs {
-					if s, ok := spec.(*ast.ImportSpec); ok {
-						err := p.readImport(s)
-						if err != nil {
-							return err
-						}
-					}
-				}
-			case token.CONST, token.VAR:
-				err := p.readValue(d)
-				if err != nil {
-					return err
-				}
-			case token.TYPE:
-				if len(d.Specs) == 1 && !d.Lparen.IsValid() {
-					if s, ok := d.Specs[0].(*ast.TypeSpec); ok {
-						err := p.readType(s)
-						if err != nil {
-							return err
-						}
-					}
-					break
-				}
-				for _, spec := range d.Specs {
-					if s, ok := spec.(*ast.TypeSpec); ok {
-						err := p.readType(s)
-						if err != nil {
-							return err
-						}
-					}
-				}
+			err := p.readGenDecl(d)
+			if err != nil {
+				return err
 			}
 		case *ast.FuncDecl:
 			err := p.readFunc(d)
