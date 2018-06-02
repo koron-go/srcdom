@@ -3,6 +3,8 @@ package srcdom
 import (
 	"regexp"
 	"strconv"
+	"unicode"
+	"unicode/utf8"
 )
 
 // Package represents a go package.
@@ -204,6 +206,14 @@ type Func struct {
 	Name    string
 	Params  []*Var
 	Results []*Var
+}
+
+func (fn *Func) IsPublic() bool {
+	r, _ := utf8.DecodeRuneInString(fn.Name)
+	if r == utf8.RuneError {
+		return false
+	}
+	return unicode.IsUpper(r)
 }
 
 // Type represents a function.
