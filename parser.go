@@ -1,7 +1,6 @@
 package srcdom
 
 import (
-	"errors"
 	"fmt"
 	"go/ast"
 	"go/token"
@@ -63,7 +62,7 @@ func (p *Parser) readValue(d *ast.GenDecl) error {
 func (p *Parser) readType(spec *ast.TypeSpec) error {
 	name := spec.Name.Name
 	typ := p.Package.assureType(name)
-	typ.defined = true
+	typ.Defined = true
 	return p.readTypeFields(spec.Type, typ)
 }
 
@@ -79,6 +78,7 @@ func (p *Parser) readTypeFields(expr ast.Expr, typ *Type) error {
 			return err
 		}
 	case *ast.InterfaceType:
+		typ.IsInterface = true
 		if t.Methods == nil || len(t.Methods.List) == 0 {
 			break
 		}
@@ -98,7 +98,7 @@ func (p *Parser) readStructType(st *ast.StructType, typ *Type) error {
 			return err
 		}
 		if f.Name == "" {
-			typ.putEmbedded(f.Type)
+			typ.putEmbed(f.Type)
 			break
 		}
 		typ.putField(f)
@@ -108,18 +108,16 @@ func (p *Parser) readStructType(st *ast.StructType, typ *Type) error {
 
 func (p *Parser) readInterfaceType(it *ast.InterfaceType, typ *Type) error {
 	for _, astField := range it.Methods.List {
-		name := firstName(astField.Names)
-		if name == "" {
-			// TODO: support embedded interface
-			return errors.New("embedded interface not supported")
-		}
 		switch ft := astField.Type.(type) {
 		case *ast.FuncType:
+			name := firstName(astField.Names)
 			f, err := p.toFunc(name, ft)
 			if err != nil {
 				return err
 			}
 			typ.putMethod(f)
+		case *ast.SelectorExpr:
+			typ.putEmbed(typeString(ft))
 		default:
 			return fmt.Errorf("unsupported interface method type: %T", ft)
 		}

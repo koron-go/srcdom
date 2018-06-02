@@ -30,7 +30,7 @@ func (p *Package) putFunc(fun *Func) {
 	}
 	idx := len(p.Funcs)
 	p.funIdx[fun.Name] = idx
-	p.Funcs[idx] = fun
+	p.Funcs = append(p.Funcs, fun)
 }
 
 // Func gets a func which matches with name.
@@ -57,7 +57,7 @@ func (p *Package) putType(typ *Type) {
 	}
 	idx := len(p.Types)
 	p.typIdx[typ.Name] = idx
-	p.Types[idx] = typ
+	p.Types = append(p.Types, typ)
 }
 
 // Type gets a type which matches with name.
@@ -208,11 +208,13 @@ type Func struct {
 
 // Type represents a function.
 type Type struct {
-	Name     string
-	IsStruct bool
-	defined  bool
+	Name    string
+	Defined bool
 
-	Embeds  []string
+	IsStruct    bool
+	IsInterface bool
+
+	Embeds   []string
 	embedIdx map[string]int
 
 	Fields   []*Field
@@ -222,7 +224,7 @@ type Type struct {
 	methodIdx map[string]int
 }
 
-func (typ *Type) putEmbedded(typeName string) {
+func (typ *Type) putEmbed(typeName string) {
 	if typ.embedIdx == nil {
 		typ.embedIdx = make(map[string]int)
 	}
@@ -232,7 +234,7 @@ func (typ *Type) putEmbedded(typeName string) {
 }
 
 // Embed checks the type has embed type or not.
-func (typ*Type) Embed(n string) bool {
+func (typ *Type) Embed(n string) bool {
 	_, ok := typ.embedIdx[n]
 	return ok
 }
