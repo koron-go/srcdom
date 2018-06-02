@@ -208,6 +208,7 @@ type Func struct {
 	Results []*Var
 }
 
+// IsPublic checks its name is public or not.
 func (fn *Func) IsPublic() bool {
 	r, _ := utf8.DecodeRuneInString(fn.Name)
 	if r == utf8.RuneError {
