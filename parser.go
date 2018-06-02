@@ -111,11 +111,7 @@ func (p *Parser) readInterfaceType(it *ast.InterfaceType, typ *Type) error {
 		switch ft := astField.Type.(type) {
 		case *ast.FuncType:
 			name := firstName(astField.Names)
-			f, err := p.toFunc(name, ft)
-			if err != nil {
-				return err
-			}
-			typ.putMethod(f)
+			typ.putMethod(toFunc(name, ft))
 		case *ast.SelectorExpr:
 			typ.putEmbed(typeString(ft))
 		default:
@@ -126,10 +122,7 @@ func (p *Parser) readInterfaceType(it *ast.InterfaceType, typ *Type) error {
 }
 
 func (p *Parser) readFunc(fun *ast.FuncDecl) error {
-	f, err := p.toFunc(fun.Name.Name, fun.Type)
-	if err != nil {
-		return err
-	}
+	f := toFunc(fun.Name.Name, fun.Type)
 	if fun.Recv != nil {
 		if len(fun.Recv.List) == 0 {
 			// should not happen (incorrect AST);
@@ -145,44 +138,6 @@ func (p *Parser) readFunc(fun *ast.FuncDecl) error {
 	}
 	p.Package.putFunc(f)
 	return nil
-}
-
-func (p *Parser) toFunc(name string, funcType *ast.FuncType) (*Func, error) {
-	f := &Func{Name: name}
-	if funcType != nil {
-		var err error
-		f.Params, err = p.toVarArray(funcType.Params)
-		if err != nil {
-			return nil, err
-		}
-		f.Results, err = p.toVarArray(funcType.Results)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return f, nil
-}
-
-func (p *Parser) toVarArray(fl *ast.FieldList) ([]*Var, error) {
-	if fl == nil || len(fl.List) == 0 {
-		return nil, nil
-	}
-	vars := make([]*Var, 0, len(fl.List))
-	for _, f := range fl.List {
-		v, err := p.toVar(f)
-		if err != nil {
-			return nil, err
-		}
-		vars = append(vars, v)
-	}
-	return vars, nil
-}
-
-func (p *Parser) toVar(f *ast.Field) (*Var, error) {
-	return &Var{
-		Name: firstName(f.Names),
-		Type: typeString(f.Type),
-	}, nil
 }
 
 func (p *Parser) toField(f *ast.Field) (*Field, error) {
