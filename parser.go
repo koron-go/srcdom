@@ -254,8 +254,8 @@ func (p *Parser) readGenDecl(d *ast.GenDecl) error {
 	return nil
 }
 
-// ReadFile read a ast.File to build Package.
-func (p *Parser) ReadFile(file *ast.File) error {
+// ScanFile scans a ast.File to build Package.
+func (p *Parser) ScanFile(file *ast.File) error {
 	if p.Package == nil || p.Package.Name != file.Name.Name {
 		p.Package = &Package{
 			Name: file.Name.Name,

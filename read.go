@@ -20,7 +20,7 @@ func readFile(name string) (*Package, error) {
 		return nil, err
 	}
 	p := &Parser{}
-	err = p.ReadFile(file)
+	err = p.ScanFile(file)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +40,7 @@ func readDir(path string) (*Package, error) {
 	p := &Parser{}
 	for _, pkg := range pkgs {
 		for _, file := range pkg.Files {
-			err := p.ReadFile(file)
+			err := p.ScanFile(file)
 			if err != nil {
 				return nil, err
 			}
