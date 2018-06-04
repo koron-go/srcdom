@@ -34,7 +34,10 @@ func readDir(path string) (*Package, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(pkgs) != 1 {
+	if len(pkgs) == 0 {
+		return &Package{}, nil
+	}
+	if len(pkgs) > 1 {
 		return nil, fmt.Errorf("multiple packages in directory %s", path)
 	}
 	p := &Parser{}
