@@ -50,6 +50,8 @@ func typeString(x ast.Expr) string {
 			b.WriteString(")")
 		}
 		return b.String()
+	case *ast.Ellipsis:
+		return "..." + typeString(typ.Elt)
 	default:
 		warnf("typeString doesn't support: %T", typ)
 	}
