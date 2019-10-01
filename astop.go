@@ -68,8 +68,11 @@ func firstName(names []*ast.Ident) string {
 }
 
 func toVar(f *ast.Field) []*Var {
-	vars := make([]*Var, len(f.Names))
 	typ := typeString(f.Type)
+	if len(f.Names) == 0 {
+		return []*Var{{Name: "", Type: typ}}
+	}
+	vars := make([]*Var, len(f.Names))
 	for i, n := range f.Names {
 		vars[i] = &Var{Name: n.Name, Type: typ}
 	}
