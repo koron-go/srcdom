@@ -1,1 +1,1 @@
-module "github.com/koron-go/srcdom"
+module github.com/koron-go/srcdom

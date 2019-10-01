@@ -67,11 +67,13 @@ func firstName(names []*ast.Ident) string {
 	return names[0].Name
 }
 
-func toVar(f *ast.Field) *Var {
-	return &Var{
-		Name: firstName(f.Names),
-		Type: typeString(f.Type),
+func toVar(f *ast.Field) []*Var {
+	vars := make([]*Var, len(f.Names))
+	typ := typeString(f.Type)
+	for i, n := range f.Names {
+		vars[i] = &Var{Name: n.Name, Type: typ}
 	}
+	return vars
 }
 
 func toVarArray(fl *ast.FieldList) []*Var {
@@ -80,7 +82,7 @@ func toVarArray(fl *ast.FieldList) []*Var {
 	}
 	vars := make([]*Var, 0, len(fl.List))
 	for _, f := range fl.List {
-		vars = append(vars, toVar(f))
+		vars = append(vars, toVar(f)...)
 	}
 	return vars
 }
