@@ -2,9 +2,11 @@ package srcdom
 
 import (
 	"fmt"
+	"go/ast"
 	"go/parser"
 	"go/token"
 	"os"
+	"sort"
 )
 
 // readFile reads a file as a Package.
@@ -27,6 +29,17 @@ func readFile(name string) (*Package, error) {
 	return p.Package, nil
 }
 
+func sortFileNames(src map[string]*ast.File) []string {
+	names := make([]string, 0, len(src))
+	for n := range src {
+		names = append(names, n)
+	}
+	sort.Slice(names, func(i, j int) bool {
+		return names[i] < names[j]
+	})
+	return names
+}
+
 // readDir reads all files in a directory as a Package.
 func readDir(path string) (*Package, error) {
 	fset := token.NewFileSet()
@@ -42,7 +55,8 @@ func readDir(path string) (*Package, error) {
 	}
 	p := &Parser{}
 	for _, pkg := range pkgs {
-		for _, file := range pkg.Files {
+		for _, n := range sortFileNames(pkg.Files) {
+			file := pkg.Files[n]
 			err := p.ScanFile(file)
 			if err != nil {
 				return nil, err
