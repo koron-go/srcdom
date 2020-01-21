@@ -54,6 +54,8 @@ func typeString(x ast.Expr) string {
 		return "..." + typeString(typ.Elt)
 	case *ast.ArrayType:
 		return "[]" + typeString(typ.Elt)
+	case *ast.MapType:
+		return "map[" + typeString(typ.Key) + "]" + typeString(typ.Value)
 	default:
 		warnf("typeString doesn't support: %T", typ)
 	}
