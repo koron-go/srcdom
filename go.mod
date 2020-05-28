@@ -1,3 +1,3 @@
 module github.com/koron-go/srcdom
 
-go 1.13
+go 1.14
