@@ -56,6 +56,18 @@ func typeString(x ast.Expr) string {
 		return "[]" + typeString(typ.Elt)
 	case *ast.MapType:
 		return "map[" + typeString(typ.Key) + "]" + typeString(typ.Value)
+	case *ast.StructType:
+		if typ.Fields != nil && len(typ.Fields.List) > 0 {
+			// TODO: support unnamed struct type.
+			panic("not support unnamed struct type yet")
+		}
+		return "struct{}"
+	case *ast.InterfaceType:
+		if typ.Methods != nil && len(typ.Methods.List) > 0 {
+			// TODO: support unnamed interface type.
+			panic("not support unnamed interface type yet")
+		}
+		return "interface{}"
 	default:
 		warnf("typeString doesn't support: %T", typ)
 	}
