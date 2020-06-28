@@ -114,8 +114,10 @@ func (p *Parser) readInterfaceType(it *ast.InterfaceType, typ *Type) error {
 			typ.putMethod(toFunc(name, ft))
 		case *ast.SelectorExpr:
 			typ.putEmbed(typeString(ft))
+		case *ast.Ident:
+			typ.putEmbed(typeString(ft))
 		default:
-			return fmt.Errorf("unsupported interface method type: %T", ft)
+			return fmt.Errorf("unsupported interface method type: %T (%s)", ft, typeString(ft))
 		}
 	}
 	return nil
