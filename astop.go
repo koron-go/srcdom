@@ -1,6 +1,7 @@
 package srcdom
 
 import (
+	"fmt"
 	"go/ast"
 	"strings"
 )
@@ -68,6 +69,19 @@ func typeString(x ast.Expr) string {
 			panic("not support unnamed interface type yet")
 		}
 		return "interface{}"
+	case *ast.ChanType:
+		var chanLabel string
+		switch typ.Dir {
+		case ast.SEND | ast.RECV:
+			chanLabel = "chan"
+		case ast.SEND:
+			chanLabel = "chan<-"
+		case ast.RECV:
+			chanLabel = "<-chan"
+		default:
+			panic(fmt.Sprintf("illegal channel direction (ast.ChanDir): %d", typ.Dir))
+		}
+		return chanLabel + " " + typeString(typ.Value)
 	default:
 		warnf("typeString doesn't support: %T", typ)
 	}
