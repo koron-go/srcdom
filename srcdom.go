@@ -3,6 +3,7 @@ package srcdom
 import (
 	"regexp"
 	"strconv"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 )
@@ -215,6 +216,21 @@ func (fn *Func) IsPublic() bool {
 		return false
 	}
 	return unicode.IsUpper(r)
+}
+
+func (fn *Func) writeResults(b *strings.Builder) {
+	rets := typesString(fn.Results)
+	switch len(fn.Results) {
+	case 0:
+		// nothing to append
+	case 1:
+		b.WriteString(" ")
+		b.WriteString(rets)
+	default:
+		b.WriteString(" (")
+		b.WriteString(rets)
+		b.WriteString(")")
+	}
 }
 
 // Type represents a function.

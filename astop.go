@@ -38,19 +38,9 @@ func typeString(x ast.Expr) string {
 		fn := toFunc("", typ)
 		b := &strings.Builder{}
 		b.WriteString("func (" + typesString(fn.Params) + ")")
-		rets := typesString(fn.Results)
-		switch len(fn.Results) {
-		case 0:
-			// nothing to append
-		case 1:
-			b.WriteString(" ")
-			b.WriteString(rets)
-		default:
-			b.WriteString(" (")
-			b.WriteString(rets)
-			b.WriteString(")")
-		}
+		fn.writeResults(b)
 		return b.String()
+
 	case *ast.Ellipsis:
 		return "..." + typeString(typ.Elt)
 	case *ast.ArrayType:
@@ -58,17 +48,45 @@ func typeString(x ast.Expr) string {
 	case *ast.MapType:
 		return "map[" + typeString(typ.Key) + "]" + typeString(typ.Value)
 	case *ast.StructType:
-		if typ.Fields != nil && len(typ.Fields.List) > 0 {
-			// TODO: support unnamed struct type.
-			panic("not support unnamed struct type yet")
+		if typ.Fields == nil || len(typ.Fields.List) == 0 {
+			return "struct{}"
 		}
-		return "struct{}"
+		b := &strings.Builder{}
+		b.WriteString("struct { ")
+		for i, f := range typ.Fields.List {
+			if i > 0 {
+				b.WriteString("; ")
+			}
+			b.WriteString(firstName(f.Names))
+			b.WriteString(" ")
+			b.WriteString(typeString(f.Type))
+		}
+		b.WriteString(" }")
+		return b.String()
+
 	case *ast.InterfaceType:
-		if typ.Methods != nil && len(typ.Methods.List) > 0 {
-			// TODO: support unnamed interface type.
-			panic("not support unnamed interface type yet")
+		if typ.Methods == nil || len(typ.Methods.List) == 0 {
+			return "interface{}"
 		}
-		return "interface{}"
+		b := &strings.Builder{}
+		b.WriteString("interface { ")
+		for i, m := range typ.Methods.List {
+			if i > 0 {
+				b.WriteString("; ")
+			}
+			switch mTyp := m.Type.(type) {
+			case *ast.FuncType:
+				fn := toFunc("", mTyp)
+				b.WriteString(firstName(m.Names))
+				b.WriteString("(" + typesString(fn.Params) + ")")
+				fn.writeResults(b)
+			default:
+				panic(fmt.Sprintf("not supported fields in unnamed interface type: %T", m.Type))
+			}
+		}
+		b.WriteString(" }")
+		return b.String()
+
 	case *ast.ChanType:
 		var chanLabel string
 		switch typ.Dir {
@@ -82,6 +100,7 @@ func typeString(x ast.Expr) string {
 			panic(fmt.Sprintf("illegal channel direction (ast.ChanDir): %d", typ.Dir))
 		}
 		return chanLabel + " " + typeString(typ.Value)
+
 	default:
 		warnf("typeString doesn't support: %T", typ)
 	}
