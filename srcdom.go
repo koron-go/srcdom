@@ -1,3 +1,8 @@
+/*
+Package srcdom provides utilities to manipulate Go's AST (Abstract Structure
+Tree). Using srcdom, you can easily access/extract information of types,
+funcions and variables from AST.
+*/
 package srcdom
 
 import (

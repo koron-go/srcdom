@@ -14,11 +14,11 @@ func warnf(s string, args ...interface{}) {
 	}
 }
 
-// DebugLog is log destination for debug messages
-var DebugLog = log.New(os.Stderr, "srcdom:debug ", 0)
-
-func debugf(s string, args ...interface{}) {
-	if DebugLog != nil {
-		DebugLog.Printf(s, args...)
-	}
-}
+//// DebugLog is log destination for debug messages
+//var DebugLog = log.New(os.Stderr, "srcdom:debug ", 0)
+//
+//func debugf(s string, args ...interface{}) {
+//	if DebugLog != nil {
+//		DebugLog.Printf(s, args...)
+//	}
+//}
