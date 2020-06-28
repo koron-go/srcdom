@@ -13,6 +13,14 @@ import (
 	"unicode/utf8"
 )
 
+func isPublicName(name string) bool {
+	r, _ := utf8.DecodeRuneInString(name)
+	if r == utf8.RuneError {
+		return false
+	}
+	return unicode.IsUpper(r)
+}
+
 // Package represents a go package.
 type Package struct {
 	Name string
@@ -216,11 +224,7 @@ type Func struct {
 
 // IsPublic checks its name is public or not.
 func (fn *Func) IsPublic() bool {
-	r, _ := utf8.DecodeRuneInString(fn.Name)
-	if r == utf8.RuneError {
-		return false
-	}
-	return unicode.IsUpper(r)
+	return isPublicName(fn.Name)
 }
 
 func (fn *Func) writeResults(b *strings.Builder) {
@@ -263,6 +267,11 @@ func (typ *Type) putEmbed(typeName string) {
 	idx := len(typ.Embeds)
 	typ.embedIdx[typeName] = idx
 	typ.Embeds = append(typ.Embeds, typeName)
+}
+
+// IsPublic checks its name is public or not.
+func (typ *Type) IsPublic() bool {
+	return isPublicName(typ.Name)
 }
 
 // Embed checks the type has embed type or not.
@@ -326,4 +335,9 @@ type Value struct {
 	Name    string
 	Type    string
 	IsConst bool
+}
+
+// IsPublic checks its name is public or not.
+func (v *Value) IsPublic() bool {
+	return isPublicName(v.Name)
 }
