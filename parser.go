@@ -28,7 +28,7 @@ func (p *Parser) readImport(s *ast.ImportSpec) error {
 	return nil
 }
 
-func (p *Parser) readValue(d *ast.GenDecl, isConst bool) error {
+func (p *Parser) readValue(d *ast.GenDecl) error {
 	prev := ""
 	for _, spec := range d.Specs {
 		s, ok := spec.(*ast.ValueSpec)
@@ -38,20 +38,30 @@ func (p *Parser) readValue(d *ast.GenDecl, isConst bool) error {
 		}
 		// determine var/const typeName
 		typeName := ""
-		switch {
-		case s.Type == nil:
+		if s.Type != nil {
 			if n, imp := baseTypeName(s.Type); !imp {
 				typeName = n
+				prev = n
 			}
-		case d.Tok == token.CONST:
+		}
+		if typeName == "" {
 			typeName = prev
-			isConst = true
+		}
+		// check is const
+		isConst := d.Tok == token.CONST
+		// extract basic literal
+		var lit *ast.BasicLit
+		if len(s.Values) == 1 {
+			if v, ok := s.Values[0].(*ast.BasicLit); ok {
+				lit = v
+			}
 		}
 		for _, n := range s.Names {
 			p.Package.putValue(&Value{
 				Name:    n.Name,
 				Type:    typeName,
 				IsConst: isConst,
+				Literal: lit,
 			})
 		}
 	}
@@ -181,13 +191,8 @@ func (p *Parser) readGenDecl(d *ast.GenDecl) error {
 				}
 			}
 		}
-	case token.VAR:
-		err := p.readValue(d, false)
-		if err != nil {
-			return err
-		}
-	case token.CONST:
-		err := p.readValue(d, true)
+	case token.CONST, token.VAR:
+		err := p.readValue(d)
 		if err != nil {
 			return err
 		}

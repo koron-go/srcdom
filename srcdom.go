@@ -6,6 +6,7 @@ funcions and variables from AST.
 package srcdom
 
 import (
+	"go/ast"
 	"regexp"
 	"strconv"
 	"strings"
@@ -335,6 +336,8 @@ type Value struct {
 	Name    string
 	Type    string
 	IsConst bool
+
+	Literal *ast.BasicLit
 }
 
 // IsPublic checks its name is public or not.
