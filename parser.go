@@ -28,7 +28,7 @@ func (p *Parser) readImport(s *ast.ImportSpec) error {
 	return nil
 }
 
-func (p *Parser) readValue(d *ast.GenDecl) error {
+func (p *Parser) readValue(d *ast.GenDecl, isConst bool) error {
 	prev := ""
 	for _, spec := range d.Specs {
 		s, ok := spec.(*ast.ValueSpec)
@@ -38,7 +38,6 @@ func (p *Parser) readValue(d *ast.GenDecl) error {
 		}
 		// determine var/const typeName
 		typeName := ""
-		var isConst bool
 		switch {
 		case s.Type == nil:
 			if n, imp := baseTypeName(s.Type); !imp {
@@ -182,8 +181,13 @@ func (p *Parser) readGenDecl(d *ast.GenDecl) error {
 				}
 			}
 		}
-	case token.CONST, token.VAR:
-		err := p.readValue(d)
+	case token.VAR:
+		err := p.readValue(d, false)
+		if err != nil {
+			return err
+		}
+	case token.CONST:
+		err := p.readValue(d, true)
 		if err != nil {
 			return err
 		}
