@@ -101,7 +101,17 @@ func typeString(x ast.Expr) string {
 		}
 		return chanLabel + " " + typeString(typ.Value)
 
+	case *ast.BinaryExpr:
+		return typeString(typ.X) + " " + typ.Op.String() + " " + typeString(typ.Y)
+
+	case *ast.UnaryExpr:
+		return typ.Op.String() + typeString(typ.X)
+
+	case *ast.IndexExpr:
+		return typeString(typ.X) + "[" + typeString(typ.Index) + "]"
+
 	default:
+		//panic(fmt.Sprintf("typeString doesn't support: %[1]T %[1]v", typ))
 		warnf("typeString doesn't support: %T", typ)
 	}
 	return ""
