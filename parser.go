@@ -116,14 +116,15 @@ func (p *Parser) readStructType(st *ast.StructType, typ *Type) error {
 }
 
 func (p *Parser) readInterfaceType(it *ast.InterfaceType, typ *Type) error {
+	// See also https://go.dev/ref/spec#Interface_types
 	for _, astField := range it.Methods.List {
 		switch ft := astField.Type.(type) {
 		case *ast.FuncType:
+			// MethodElem
 			name := firstName(astField.Names)
 			typ.putMethod(toFunc(name, ft))
-		case *ast.SelectorExpr:
-			typ.putEmbed(typeString(ft))
-		case *ast.Ident:
+		case *ast.SelectorExpr, *ast.Ident, *ast.BinaryExpr:
+			// TypeElem
 			typ.putEmbed(typeString(ft))
 		default:
 			return fmt.Errorf("unsupported interface method type: %T (%s)", ft, typeString(ft))

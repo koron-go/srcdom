@@ -101,6 +101,28 @@ func typeString(x ast.Expr) string {
 		}
 		return chanLabel + " " + typeString(typ.Value)
 
+	case *ast.BinaryExpr:
+		return typeString(typ.X) + " " + typ.Op.String() + " " + typeString(typ.Y)
+
+	case *ast.UnaryExpr:
+		return typ.Op.String() + typeString(typ.X)
+
+	case *ast.IndexExpr:
+		return typeString(typ.X) + "[" + typeString(typ.Index) + "]"
+
+	case *ast.IndexListExpr:
+		b := &strings.Builder{}
+		b.WriteString(typeString(typ.X))
+		b.WriteRune('[')
+		for i, expr := range typ.Indices {
+			if i > 0 {
+				b.WriteString(", ")
+			}
+			b.WriteString(typeString(expr))
+		}
+		b.WriteRune(']')
+		return b.String()
+
 	default:
 		warnf("typeString doesn't support: %T", typ)
 	}
