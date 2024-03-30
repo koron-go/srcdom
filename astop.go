@@ -110,8 +110,20 @@ func typeString(x ast.Expr) string {
 	case *ast.IndexExpr:
 		return typeString(typ.X) + "[" + typeString(typ.Index) + "]"
 
+	case *ast.IndexListExpr:
+		b := &strings.Builder{}
+		b.WriteString(typeString(typ.X))
+		b.WriteRune('[')
+		for i, expr := range typ.Indices {
+			if i > 0 {
+				b.WriteString(", ")
+			}
+			b.WriteString(typeString(expr))
+		}
+		b.WriteRune(']')
+		return b.String()
+
 	default:
-		//panic(fmt.Sprintf("typeString doesn't support: %[1]T %[1]v", typ))
 		warnf("typeString doesn't support: %T", typ)
 	}
 	return ""
