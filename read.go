@@ -3,8 +3,11 @@ package srcdom
 import (
 	"fmt"
 	"go/ast"
+	"go/build"
+	"go/build/constraint"
 	"go/parser"
 	"go/token"
+	"log"
 	"os"
 	"sort"
 )
@@ -40,7 +43,6 @@ func sortFileNames(src map[string]*ast.File) []string {
 	return names
 }
 
-
 func toPackages(pkgMap map[string]*ast.Package) []*ast.Package {
 	pkgs := make([]*ast.Package, 0, len(pkgMap))
 	for _, p := range pkgMap {
@@ -49,14 +51,73 @@ func toPackages(pkgMap map[string]*ast.Package) []*ast.Package {
 	return pkgs
 }
 
+func joinExprListWithOrExpr(list []constraint.Expr) constraint.Expr {
+	if len(list) == 1 {
+		return list[0]
+	}
+	return &constraint.OrExpr{X: list[0], Y: joinExprListWithOrExpr(list[1:])}
+}
+
+func extractBuildDirectives(file *ast.File) (constraint.Expr, error) {
+	var plusBuilds []constraint.Expr
+	for _, group := range file.Comments {
+		if group.Pos() >= file.Package {
+			break
+		}
+		for _, c := range group.List {
+			if constraint.IsGoBuild(c.Text) {
+				return constraint.Parse(c.Text)
+			}
+			if !constraint.IsPlusBuild(c.Text) {
+				continue
+			}
+			expr, err := constraint.Parse(c.Text)
+			if err != nil {
+				return nil, err
+			}
+			plusBuilds = append(plusBuilds, expr)
+		}
+	}
+	if len(plusBuilds) == 0 {
+		return nil, nil
+	}
+	return joinExprListWithOrExpr(plusBuilds), nil
+}
+
+var debugFilterdPackage bool = true
+
 // readDir reads all files in a directory as a Package.
-func readDir(path string, testPackage bool) (*Package, error) {
+func readDir(path string, testPackage bool, tags map[string]bool) (*Package, error) {
 	fset := token.NewFileSet()
-	pkgMap, err := parser.ParseDir(fset, path, nil, 0)
+	pkgMap, err := parser.ParseDir(fset, path, nil, parser.ParseComments)
 	if err != nil {
 		return nil, err
 	}
+	var filtered bool
+	// remove packages which have no files to be built.
+	for pname, pkg := range pkgMap {
+		// filter pkg.Files by build tags
+		for fname, file := range pkg.Files {
+			expr, err := extractBuildDirectives(file)
+			if err != nil {
+				return nil, err
+			}
+			if expr == nil {
+				continue
+			}
+			if !expr.Eval(func(tag string) bool { return tags[tag] }) {
+				delete(pkg.Files, fname)
+			}
+		}
+		if len(pkg.Files) == 0 {
+			delete(pkgMap, pname)
+			filtered = true
+		}
+	}
 	if len(pkgMap) == 0 {
+		if debugFilterdPackage && filtered {
+			log.Printf("package:%s is empty because filtered\n", path)
+		}
 		return &Package{}, nil
 	}
 	if len(pkgMap) > 2 {
@@ -89,14 +150,28 @@ func readDir(path string, testPackage bool) (*Package, error) {
 	return p.Package, nil
 }
 
+func getTags() map[string]bool {
+	tagMap := map[string]bool{}
+	tagMap[build.Default.GOARCH] = true
+	tagMap[build.Default.GOOS] = true
+	for _, tags := range [][]string{build.Default.BuildTags, build.Default.ToolTags, build.Default.ReleaseTags} {
+		for _, tag := range tags {
+			tagMap[tag] = true
+		}
+	}
+	return tagMap
+}
+
 // Read reads a file or directory as a Package.
+// If you are going to read a directory, see also ReadDir.
 func Read(path string) (*Package, error) {
 	fi, err := os.Stat(path)
 	if err != nil {
 		return nil, err
 	}
 	if fi.IsDir() {
-		return readDir(path, false)
+		tags := getTags()
+		return readDir(path, false, tags)
 	}
 	return readFile(path)
 }
@@ -112,5 +187,6 @@ func ReadDir(path string, testPackage bool) (*Package, error) {
 	if !fi.IsDir() {
 		return nil, fmt.Errorf("path is not a directory: %q", path)
 	}
-	return readDir(path, testPackage)
+	tags := getTags()
+	return readDir(path, testPackage, tags)
 }
