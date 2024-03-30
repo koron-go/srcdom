@@ -8,6 +8,7 @@ package srcdom
 import (
 	"go/ast"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"unicode"
@@ -22,6 +23,15 @@ func isPublicName(name string) bool {
 	return unicode.IsUpper(r)
 }
 
+func sortedNames(m map[string]int) []string {
+	names := make([]string, 0, len(m))
+	for k := range m {
+		names = append(names, k)
+	}
+	sort.Strings(names)
+	return names
+}
+
 // Package represents a go package.
 type Package struct {
 	Name string
@@ -29,6 +39,7 @@ type Package struct {
 	Imports []*Import
 
 	Values []*Value
+	valIdx map[string]int
 
 	Funcs  []*Func
 	funIdx map[string]int
@@ -38,7 +49,26 @@ type Package struct {
 }
 
 func (p *Package) putValue(v *Value) {
+	if p.valIdx == nil {
+		p.valIdx = make(map[string]int)
+	}
+	idx := len(p.Values)
+	p.valIdx[v.Name] = idx
 	p.Values = append(p.Values, v)
+}
+
+// Value gets a value which matches with name.
+func (p *Package) Value(name string) (*Value, bool) {
+	idx, ok := p.valIdx[name]
+	if !ok {
+		return nil, false
+	}
+	return p.Values[idx], true
+}
+
+// ValueName returns sorted names of value in the package.
+func (p *Package) ValueNames() []string {
+	return sortedNames(p.valIdx)
 }
 
 func (p *Package) putFunc(fun *Func) {
@@ -57,6 +87,11 @@ func (p *Package) Func(name string) (*Func, bool) {
 		return nil, false
 	}
 	return p.Funcs[idx], true
+}
+
+// FuncNames returns sorted names of function in the package.
+func (p *Package) FuncNames() []string {
+	return sortedNames(p.funIdx)
 }
 
 func (p *Package) assureType(name string) *Type {
@@ -84,6 +119,11 @@ func (p *Package) Type(name string) (*Type, bool) {
 		return nil, false
 	}
 	return p.Types[idx], true
+}
+
+// TypeNames returns sorted names of type in the package.
+func (p *Package) TypeNames() []string {
+	return sortedNames(p.typIdx)
 }
 
 // Import represents an import.
