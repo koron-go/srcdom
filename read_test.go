@@ -44,7 +44,7 @@ func TestReadGOROOT(t *testing.T) {
 		}
 		_, err = srcdom.ReadDir(path, false)
 		if err != nil {
-			t.Errorf("failed to read pacakge: %s", err)
+			t.Errorf("failed to read package: %s", err)
 		}
 		return nil
 	})
