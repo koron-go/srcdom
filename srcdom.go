@@ -66,7 +66,7 @@ func (p *Package) Value(name string) (*Value, bool) {
 	return p.Values[idx], true
 }
 
-// ValueName returns sorted names of value in the package.
+// ValueNames returns sorted names of value in the package.
 func (p *Package) ValueNames() []string {
 	return sortedNames(p.valIdx)
 }
